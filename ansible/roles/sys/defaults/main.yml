@@ -1,0 +1,4 @@
+---
+sys_zram_size: "ram / 2"
+sys_zram_compression_algorithm: "zstd"
+sys_zram_swap_priority: 100

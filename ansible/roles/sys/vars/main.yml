@@ -1,0 +1,4 @@
+---
+sys_prereq_packages:
+  - systemd-zram-generator
+  - kubectl

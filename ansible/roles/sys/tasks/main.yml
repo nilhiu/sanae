@@ -1,0 +1,42 @@
+---
+- name: Ensure lid switch is ignored
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/logind.conf
+    regex: "^HandleLidSwitch="
+    line: HandleLidSwitch=ignore
+  notify: Restart systemd logind daemon
+
+- name: Install system config prerequisite packages
+  ansible.builtin.apt:
+    name: "{{ sys_prereq_packages }}"
+    update_cache: true
+    state: present
+
+- name: Deploy zram-generator configuration
+  ansible.builtin.template:
+    src: zram-generator.conf.j2
+    dest: /etc/systemd/zram-generator.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd daemon
+    - Restart zram
+
+- name: Add the bfq module permanently
+  community.general.modprobe:
+    name: bfq
+    state: present
+    persistent: present
+
+- name: Deploy bfq udev rule
+  ansible.builtin.copy:
+    dest: /etc/udev/rules.d/60-ioscheduler.rules
+    content: |
+      ACTION=="add|change", KERNEL=="sda", ATTR{queue/scheduler}="bfq"
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload udev rules
+    - Trigger udev to apply rules

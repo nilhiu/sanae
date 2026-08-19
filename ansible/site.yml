@@ -1,8 +1,9 @@
 ---
-- name: Configure nodes and setup K3s
+- name: Configure nodes and setup K3s with Cilium
   hosts: nodes
   become: true
 
   roles:
     - sys
     - k3s
+    - cilium

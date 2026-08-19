@@ -1,0 +1,14 @@
+---
+- name: Wait for Cilium to finish deployment
+  ansible.builtin.command:
+    cmd: cilium status --wait
+  environment:
+    KUBECONFIG: "{{ cilium_kubeconfig }}"
+  changed_when: false
+
+- name: Test Cilium's connectivity
+  ansible.builtin.command:
+    cmd: cilium connectivity test
+  environment:
+    KUBECONFIG: "{{ cilium_kubeconfig }}"
+  changed_when: false

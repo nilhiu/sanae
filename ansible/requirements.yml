@@ -2,3 +2,5 @@
 collections:
   - name: community.general
     version: ">=13.3.0"
+  - name: kubernetes.core
+    version: ">=6.5.0"

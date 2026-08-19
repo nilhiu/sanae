@@ -1,0 +1,15 @@
+bpf:
+  monitorInterval: 10s
+hubble:
+  relay:
+    enabled: true
+  metrics:
+    enabled:
+      - dns
+      - drop
+      - tcp
+  ui:
+    enabled: true
+operator:
+  replicas: 1
+kubeProxyReplacement: "true"

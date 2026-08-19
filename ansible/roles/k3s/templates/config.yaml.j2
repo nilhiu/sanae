@@ -3,6 +3,7 @@ disable:
   - traefik
   - servicelb
 disable-network-policy: true
+disable-kube-proxy: true
 flannel-backend: "none"
 kubelet-arg:
   - "fail-swap-on=false"

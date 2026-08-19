@@ -15,7 +15,9 @@ software and configuring them correctly to work as efficiently as it can.
 ## What It Is for Now
 
 For now it's a simple Ansible playbook that optimizes the system and installs
-a K3s cluster for a Debian 13 environment.
+a K3s cluster for a Debian 13 environment. Additionally, it disables Flannel,
+Traefik, kube-proxy, servicelb, and network-policy. Instead it sets up Cilium
+as a CNI, with Hubble monitoring.
 
 ## How To Run It
 

@@ -12,3 +12,4 @@
   environment:
     KUBECONFIG: "{{ cilium_kubeconfig }}"
   changed_when: false
+  when: cilium_enable_connectivity_test_handler | bool

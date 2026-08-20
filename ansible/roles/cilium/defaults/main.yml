@@ -4,3 +4,4 @@ cilium_helm_version: v4.2.4
 cilium_version: 1.20.1
 cilium_cli_version: v0.19.7
 cilium_cli_arch: amd64
+cilium_enable_connectivity_test_handler: false

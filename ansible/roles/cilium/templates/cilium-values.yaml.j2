@@ -13,3 +13,5 @@ hubble:
 operator:
   replicas: 1
 kubeProxyReplacement: "true"
+k8sServiceHost: "{{ ansible_facts['default_ipv4']['address'] }}"
+k8sServicePort: "6443"

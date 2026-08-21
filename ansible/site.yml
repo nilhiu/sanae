@@ -1,5 +1,5 @@
 ---
-- name: Configure nodes and setup K3s with Cilium
+- name: Configure nodes and setup K3s with Cilium and Flux
   hosts: nodes
   become: true
 
@@ -7,3 +7,4 @@
     - sys
     - k3s
     - cilium
+    - flux

@@ -1,0 +1,60 @@
+---
+- name: Install Flux Operator chart
+  kubernetes.core.helm:
+    name: flux-operator
+    kubeconfig: "{{ flux_kubeconfig }}"
+    chart_ref: oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator
+    chart_version: "{{ flux_operator_version }}"
+    release_namespace: flux-system
+    create_namespace: true
+    atomic: true
+    wait: true
+    timeout: 10m
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Get all FluxInstance objects
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_kubeconfig }}"
+    api_version: fluxcd.controlplane.io/v1
+    kind: FluxInstance
+    namespace: flux-system
+  register: flux_instances
+
+- name: Create the FluxInstance object
+  kubernetes.core.k8s:
+    kubeconfig: "{{ flux_kubeconfig }}"
+    state: present
+    apply: true
+    definition:
+      apiVersion: fluxcd.controlplane.io/v1
+      kind: FluxInstance
+      metadata:
+        name: flux
+        namespace: flux-system
+      spec:
+        distribution:
+          version: "{{ flux_instance_distribution_version }}"
+          registry: "ghcr.io/fluxcd"
+        components:
+          - source-controller
+          - kustomize-controller
+          - helm-controller
+          - notification-controller
+        cluster:
+          type: kubernetes
+          size: "{{ flux_instance_cluster_size }}"
+        storage:
+          class: local-path
+          size: 5Gi
+        sync:
+          kind: GitRepository
+          url: "{{ flux_instance_sync_url }}"
+          ref: "{{ flux_instance_sync_ref }}"
+          path: "{{ flux_instance_sync_path }}"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 600
+  when: flux_instances.resources | default([]) | length == 0
+  ignore_errors: "{{ ansible_check_mode }}"

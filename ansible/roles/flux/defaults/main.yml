@@ -1,0 +1,8 @@
+---
+flux_kubeconfig: /etc/rancher/k3s/k3s.yaml
+flux_operator_version: 0.58.1
+flux_instance_distribution_version: 2.9.4
+flux_instance_cluster_size: small
+flux_instance_sync_url: https://github.com/nilhiu/sanae
+flux_instance_sync_ref: refs/heads/main
+flux_instance_sync_path: gitops

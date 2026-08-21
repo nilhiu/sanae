@@ -3,3 +3,4 @@ sys_prereq_packages:
   - systemd-zram-generator
   - kubectl
   - python3-yaml
+  - python3-kubernetes

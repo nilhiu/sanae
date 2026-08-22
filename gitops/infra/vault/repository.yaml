@@ -1,0 +1,10 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: vault
+  namespace: vault
+spec:
+  interval: 10m
+  timeout: 3m
+  provider: generic
+  url: https://helm.releases.hashicorp.com

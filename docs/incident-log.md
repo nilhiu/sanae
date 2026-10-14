@@ -13,7 +13,7 @@ Below is the table containing all the incidents with the following fields:
 | Incident | Affected | Cause | Fix Commit |
 | :--- | :--- | :--- | :--- |
 | [SANAE-001](#sanae-001-misconfigured-cilium-broke-cni-setup) | Cluster | Misconfigured Cilium | 3f53c79 |
-| [SANAE-002](#sanae-002-etcd-on-a-hdd) | All | Etcd on a HDD | nil |
+| [SANAE-002](#sanae-002-etcd-on-a-hdd) | All | Etcd on a HDD | ca2dd18 |
 | [SANAE-003](#sanae-003-unclean-shutdowns-corrupt-on-disk-state) | Vault, Host | Abrupt power loss on HDD | nil |
 
 ## Full Reports
@@ -116,7 +116,49 @@ same idle workload.
 
 #### After (post-fix)
 
-_TBD - captured after the tmpfs etcd migration._
+Captured on 2026-10-14 18:23, about 15 minutes after the migration, idle and with the
+playbook finished, using the same method as the baseline:
+
+| Metric | Before | After |
+| :--- | :--- | :--- |
+| IO PSI `full avg10` | 36.48% | 0.61% |
+| IO PSI `some avg10` | 37.90% | 0.61% |
+| IO PSI `full avg300` | 33.85% | 2.93% |
+| `iostat` `%iowait` | 39.5% | 0.00% |
+| `dm-0` `%util` | 100% | 0-6.4% |
+| `sda` fsync `f_await` | 13.6 ms | no fsyncs |
+| Top disk writer (`pidstat -d`) | `systemd-journal` 92 kB/s | none |
+| etcd `took too long` | 26,642 in ~3.5 h (~127/min) | 1 in ~15 min |
+| `kubectl get nodes` | 99-711 ms | 44-111 ms |
+| etcd db size | 553 MiB | 133 MiB |
+
+What changed (commit `ca2dd18`): `etcd` now runs on a 1 GiB tmpfs at `server/db`, the etcd
+backend quota is lowered to 768 MiB so `etcd` trips its own `NOSPACE` alarm before the tmpfs
+fills, and compressed snapshots are written every 15 minutes into `server/snapshots`
+(outside the tmpfs) with a retention of 192, about 48 hours. A `k3s-tmpfs-snapshot-recover`
+systemd unit restores the newest snapshot before `k3s` starts whenever `server/db` is empty,
+which is the case after a reboot; a normal restart leaves the live datastore alone.
+
+Accepted trade-offs:
+
+- The datastore is volatile. An unclean shutdown loses up to one snapshot interval
+  (15 minutes) of writes, and a host that boots with no snapshot bootstraps a fresh
+  cluster.
+- The one-time migration of the previous on-disk datastore was intentionally dropped, so
+  the old cluster state was discarded and rebuilt from Git.
+
+Notes:
+
+- `journalctl --disk-usage` still reports 4 GiB because the old "took too long" entries
+  have not been vacuumed yet, so it is not a real-time indicator here.
+- The 133 MiB datastore is a freshly bootstrapped cluster, not a like-for-like size
+  comparison.
+- The first snapshot was 1.85 MB compressed versus 5.6-6.6 MB uncompressed before
+  (`etcd-snapshot-compress`), a roughly 3x reduction.
+- The first recovery unit revision used a condition that systemd does not implement
+  (`ConditionPathIsEmptyDirectory`, silently ignored) and an invalid `Restart=never`. The
+  emptiness check now lives in the script, so the unit cannot restore over a populated
+  datastore on a routine restart.
 
 ### [SANAE-003]: Unclean Shutdowns Corrupt On-Disk State
 

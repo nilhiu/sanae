@@ -14,6 +14,53 @@
     mode: '0644'
   notify: Restart K3s service
 
+- name: Ensure K3s is stopped
+  ansible.builtin.systemd_service:
+    name: k3s
+    state: stopped
+  when:
+    - k3s_etcd_db_path not in (ansible_mounts | map(attribute='mount') | list)
+    - ansible_facts.services['k3s.service'] is defined
+
+- name: Ensure K3s etcd snapshot directory exists
+  ansible.builtin.file:
+    path: "{{ k3s_etcd_snapshot_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+# The datastore is intentionally ephemeral: mounting a fresh tmpfs here discards
+# (shadows) any etcd data that lived on disk. The cluster re-bootstraps and Flux
+# reconciles it back from Git.
+- name: Mount tmpfs on etcd database directory
+  ansible.posix.mount:
+    path: "{{ k3s_etcd_db_path }}"
+    src: tmpfs
+    fstype: tmpfs
+    opts: "rw,nodev,nosuid,uid=root,gid=root,mode=1700,size=1G"
+    state: mounted
+
+- name: Create k3s tmpfs etcd recovery script
+  ansible.builtin.copy:
+    src: k3s-tmpfs-snapshot-recover.sh
+    dest: /usr/local/bin/k3s-tmpfs-snapshot-recover.sh
+    mode: '0755'
+
+- name: Create etcd restore systemd unit
+  ansible.builtin.template:
+    src: k3s-tmpfs-snapshot-recover.service.j2
+    dest: /etc/systemd/system/k3s-tmpfs-snapshot-recover.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable etcd restore systemd unit
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+    name: k3s-tmpfs-snapshot-recover
+    enabled: true
+
 - name: Download K3s installation script
   ansible.builtin.get_url:
     url: https://get.k3s.io

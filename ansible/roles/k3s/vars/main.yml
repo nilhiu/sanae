@@ -1,0 +1,2 @@
+k3s_etcd_db_path: /var/lib/rancher/k3s/server/db
+k3s_etcd_snapshot_dir: /var/lib/rancher/k3s/server/snapshots

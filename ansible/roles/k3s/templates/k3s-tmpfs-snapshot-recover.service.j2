@@ -1,0 +1,15 @@
+[Unit]
+Description=K3s unit for recovering tmpfs etcd from a snapshot
+Before=k3s.service
+RequiresMountsFor={{ k3s_etcd_db_path }}
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/k3s-tmpfs-snapshot-recover.sh
+Environment=ETCD_SNAPSHOT_DIR="{{ k3s_etcd_snapshot_dir }}"
+Environment=ETCD_DB_DIR="{{ k3s_etcd_db_path }}"
+Restart=no
+
+[Install]
+WantedBy=k3s.service

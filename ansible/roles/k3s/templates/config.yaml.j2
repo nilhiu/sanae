@@ -7,3 +7,9 @@ disable-kube-proxy: true
 flannel-backend: "none"
 kubelet-arg:
   - "fail-swap-on=false"
+etcd-arg:
+  - "quota-backend-bytes=805306368"
+etcd-snapshot-schedule-cron: "{{ k3s_etcd_snapshot_schedule }}"
+etcd-snapshot-dir: "{{ k3s_etcd_snapshot_dir }}"
+etcd-snapshot-compress: {{ k3s_etcd_snapshot_compress | lower }}
+etcd-snapshot-retention: {{ k3s_etcd_snapshot_retention }}

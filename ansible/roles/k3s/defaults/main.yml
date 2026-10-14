@@ -1,2 +1,5 @@
 ---
 k3s_version: "v1.36.3+k3s1"
+k3s_etcd_snapshot_schedule: "*/15 * * * *"
+k3s_etcd_snapshot_compress: true
+k3s_etcd_snapshot_retention: 192

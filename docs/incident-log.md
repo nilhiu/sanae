@@ -14,6 +14,7 @@ Below is the table containing all the incidents with the following fields:
 | :--- | :--- | :--- | :--- |
 | [SANAE-001](#sanae-001-misconfigured-cilium-broke-cni-setup) | Cluster | Misconfigured Cilium | 3f53c79 |
 | [SANAE-002](#sanae-002-etcd-on-a-hdd) | All | Etcd on a HDD | nil |
+| [SANAE-003](#sanae-003-unclean-shutdowns-corrupt-on-disk-state) | Vault, Host | Abrupt power loss on HDD | nil |
 
 ## Full Reports
 
@@ -116,3 +117,53 @@ same idle workload.
 #### After (post-fix)
 
 _TBD - captured after the tmpfs etcd migration._
+
+### [SANAE-003]: Unclean Shutdowns Corrupt On-Disk State
+
+`sanae` is a laptop on a mains supply with frequent small outages, and the battery does not ride
+them out, so a power cut takes the host down abruptly. On a 5400 RPM HDD that leaves both
+the filesystem and `containerd`'s on-disk state inconsistent.
+
+After being powered off for a long period (2026-09-01 to 2026-10-14), the host came back up
+on 2026-10-14 with a dirty root filesystem: the kernel dropped into initramfs and asked for
+a manual `fsck`, which was run and allowed the boot to continue.
+
+The filesystem confirms the unclean shutdown. No periodic check is configured, so the only
+check that happened was the emergency one forced by the dirty mount:
+
+```bash
+$ tune2fs -l /dev/mapper/sanae--vg-root | grep -iE 'state|mount count|Last checked|check interval'
+Filesystem state:         clean
+Mount count:              1
+Last checked:             Wed Oct 14 14:01:55 2026
+Check interval:           0 (<none>)
+```
+
+`ext4` logged orphan cleanup and an initial read-only mount, and `systemd-journald`
+discarded a corrupt journal - both signatures of an unclean shutdown:
+
+```bash
+EXT4-fs (dm-0): orphan cleanup on readonly fs
+EXT4-fs (dm-0): mounted filesystem ... ro with ordered data mode.
+EXT4-fs (dm-0): re-mounted ... r/w.
+systemd-journald[399]: File /var/log/journal/.../system.journal corrupted or uncleanly shut down, renaming and replacing.
+```
+
+The same class of damage hit `containerd`: its overlayfs snapshotter metadata references a
+snapshot whose backing directory is gone, so the container can no longer be created:
+
+```bash
+failed to create containerd container: failed to stat parent:
+stat /var/lib/rancher/k3s/agent/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/448/fs:
+no such file or directory
+```
+
+The symptom is `vault-0` stuck in `CreateContainerError`. Because containerd's state lives
+under `server/agent/containerd` and not `server/db`, the etcd-on-tmpfs change from SANAE-002
+does not repair this.
+
+Candidate fixes: replace the laptop battery and/or add a UPS so short outages do not power
+the host off; install `smartmontools` and watch `Unexpected_Power_Loss`,
+`Reallocated_Sector_Ct` and `Current_Pending_Sector`; re-enable periodic filesystem checks
+(mount count and/or interval); and recover `vault-0` by pruning the stale containerd
+snapshot or rebuilding the sandbox.

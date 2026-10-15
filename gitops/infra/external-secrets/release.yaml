@@ -1,0 +1,37 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-secrets
+  namespace: eso
+spec:
+  interval: 10m
+  timeout: 5m
+  driftDetection:
+    mode: enabled
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  maxHistory: 3
+  chart:
+    spec:
+      chart: external-secrets
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: HelmRepository
+        name: external-secrets
+      version: 2.12.0
+  values:
+    resources:
+      requests: { cpu: 10m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 128Mi }
+    webhook:
+      resources:
+        requests: { cpu: 10m, memory: 64Mi }
+        limits: { cpu: 200m, memory: 128Mi }
+    certController:
+      resources:
+        requests: { cpu: 10m, memory: 64Mi }
+        limits: { cpu: 200m, memory: 128Mi }

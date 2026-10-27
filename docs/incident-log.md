@@ -14,7 +14,7 @@ Below is the table containing all the incidents with the following fields:
 | :--- | :--- | :--- | :--- |
 | [SANAE-001](#sanae-001-misconfigured-cilium-broke-cni-setup) | Cluster | Misconfigured Cilium | 3f53c79 |
 | [SANAE-002](#sanae-002-etcd-on-a-hdd) | All | Etcd on a HDD | ca2dd18 |
-| [SANAE-003](#sanae-003-unclean-shutdowns-corrupt-on-disk-state) | Vault, Host | Abrupt power loss on HDD | nil |
+| [SANAE-003](#sanae-003-unclean-shutdowns-corrupt-on-disk-state) | Vault, Host | Abrupt power loss on HDD | N/A |
 
 ## Full Reports
 
@@ -204,8 +204,9 @@ The symptom is `vault-0` stuck in `CreateContainerError`. Because containerd's s
 under `server/agent/containerd` and not `server/db`, the etcd-on-tmpfs change from SANAE-002
 does not repair this.
 
-Candidate fixes: replace the laptop battery and/or add a UPS so short outages do not power
-the host off; install `smartmontools` and watch `Unexpected_Power_Loss`,
-`Reallocated_Sector_Ct` and `Current_Pending_Sector`; re-enable periodic filesystem checks
-(mount count and/or interval); and recover `vault-0` by pruning the stale containerd
-snapshot or rebuilding the sandbox.
+#### Verdict
+
+The `vault-0` instance was fixed by recreating the `etcd` database during the implementation
+of the etcd-on-tmpfs. So, the corruption is fixed, while the root cause is still active.
+Currently, in this phase of development, this is an accepted risk, and it's being left open
+to close later.

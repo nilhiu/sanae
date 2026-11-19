@@ -23,7 +23,7 @@ jobs:
           args: "--strict"
           python_version: "3.14"
           working_directory: "ansible"
-          requirements_file: "ansible/requirements.yml"
+          requirements_file: "requirements.yml"
   manifests:
     name: manifests
     runs-on: ubuntu-24.04

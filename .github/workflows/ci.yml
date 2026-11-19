@@ -34,8 +34,8 @@ jobs:
       - name: Install kube tools
         uses: alexellis/arkade-get@master
         with:
-          kubeconform: 0.8.0
-          kustomize: 5.8.3
+          kubeconform: v0.8.0
+          kustomize: v5.8.3
       - name: Run kubeconform
         run: |
           set -euo pipefail

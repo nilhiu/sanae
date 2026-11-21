@@ -1,0 +1,61 @@
+name: ci
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actions:
+    name: actions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Run actionlint
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7
+  ansible:
+    name: ansible
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@b74fb6f73d234bf92672372cb1c10768e4018d16
+        with:
+          args: "--strict"
+          python_version: "3.14"
+          working_directory: "ansible"
+          requirements_file: "requirements.yml"
+  manifests:
+    name: manifests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install kube tools
+        uses: alexellis/arkade-get@master
+        with:
+          kubeconform: v0.8.0
+          kustomize: v5.8.3
+      - name: Run kubeconform
+        run: |
+          set -euo pipefail
+          kubeconform -summary -strict \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            ./gitops
+      - name: Run kustomize builds
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            dir="${file%/*}"
+            kustomize build "${dir}"
+          done < <(find ./gitops -type f -name kustomization.yaml -print0)

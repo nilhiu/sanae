@@ -1,0 +1,6 @@
+# Terragrunt
+.terragrunt-cache/
+
+
+# Local environment
+.env

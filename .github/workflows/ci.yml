@@ -46,6 +46,7 @@ jobs:
       - name: Run kustomize builds
         run: |
           set -euo pipefail
-          for dir in $(find ./gitops -type f -name kustomization.yaml | xargs dirname); do
+          while IFS= read -r -d '' file; do
+            dir="${file%/*}"
             kustomize build "${dir}"
-          done
+          done < <(find ./gitops -type f -name kustomization.yaml -print0)
